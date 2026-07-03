@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미니게임 : 티카투카</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --wood-dark:#2e1f14;
+    --wood-mid:#4a3322;
+    --wood-light:#6b4a30;
+    --wood-panel:#3a2818;
+    --cream:#f5edda;
+    --cream-dim:#d9cbb0;
+    --green:#7bb63a;
+    --green-deep:#3f6b1f;
+    --red:#c1524a;
+    --red-deep:#7e2f28;
+    --gold:#e8b64c;
+    --ink:#2a1a10;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:'Gowun Dodum',sans-serif;
+    background:radial-gradient(ellipse at 50% -20%, #5a3f28 0%, #3a2818 55%, #241709 100%);
+    color:var(--cream);
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100vh;overflow-x:hidden;user-select:none;
+  }
+
+  .topbar{
+    width:100%;background:linear-gradient(180deg,#1c120a,#2a1b0f);
+    border-bottom:2px solid #55391f;text-align:center;padding:10px 0 8px;
+    font-family:'Jua',sans-serif;font-size:20px;letter-spacing:2px;
+    color:#e9dcc0;text-shadow:0 2px 0 #000;
+  }
+  .topbar::after{content:"◆";display:block;font-size:9px;color:#8a6a3d;line-height:6px;}
+  .room-badge{
+    display:inline-block;margin-left:14px;font-size:14px;color:var(--gold);
+    background:rgba(0,0,0,.4);border:1px solid #6b4a30;border-radius:8px;
+    padding:1px 10px;letter-spacing:2px;vertical-align:middle;
+  }
+
+  .logo{margin:20px;text-align:center;font-family:'Jua',sans-serif;line-height:1;}
+  .logo .ko{
+    font-size:34px;color:#fff;
+    text-shadow:0 3px 0 #8a5a2b,0 5px 8px rgba(0,0,0,.6),
+      -2px -2px 0 #5c3d1c,2px -2px 0 #5c3d1c,-2px 2px 0 #5c3d1c,2px 2px 0 #5c3d1c;
+  }
+  .logo .en{
+    display:block;font-size:26px;color:var(--gold);letter-spacing:1px;
+    text-shadow:0 3px 0 #7a4d1c,-2px -2px 0 #4d3010,2px -2px 0 #4d3010,-2px 2px 0 #4d3010,2px 2px 0 #4d3010;
+    transform:rotate(-2deg);margin-top:2px;
+  }
+  .logo .dice-deco{font-size:22px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5));}
+
+  .util-row{display:flex;gap:10px;margin:8px 0 10px;}
+  .util-btn{
+    font-family:'Jua',sans-serif;font-size:14px;color:#fff;
+    padding:5px 16px;border:2px solid rgba(255,255,255,.25);border-radius:8px;
+    cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.6);
+    box-shadow:0 3px 0 rgba(0,0,0,.35);transition:transform .08s;
+  }
+  .util-btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.35);}
+  .util-btn.green{background:linear-gradient(180deg,#8cbf4d,#4f7d24);}
+  .util-btn.red{background:linear-gradient(180deg,#c4574d,#8a3129);}
+
+  .tp-bar{
+    background:rgba(20,12,6,.75);border:1px solid #5c4327;border-radius:999px;
+    padding:6px 22px;font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:14px;
+  }
+  .tp-bar .coin{color:var(--gold);font-size:17px;}
+  .tp-bar b{font-family:'Jua',sans-serif;font-size:20px;color:#fff;letter-spacing:1px;}
+  .tp-bar .tp-delta{font-family:'Jua',sans-serif;font-size:14px;}
+  .tp-up{color:#9fdd5c;} .tp-down{color:#ff8d80;}
+
+  .table-wrap{
+    position:relative;width:min(1060px,96vw);
+    background:radial-gradient(ellipse at 50% 40%, #6b4a2e 0%, #4d3520 60%, #3a2716 100%);
+    border-radius:48px;border:10px solid #241708;outline:3px solid #55391f;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.55), 0 18px 40px rgba(0,0,0,.6);
+    padding:18px 22px 24px;margin-bottom:26px;
+  }
+  .table-wrap::before{
+    content:"";position:absolute;inset:0;border-radius:38px;pointer-events:none;
+    background:repeating-linear-gradient(180deg,transparent 0 46px,rgba(0,0,0,.10) 46px 48px);
+    mix-blend-mode:multiply;
+  }
+
+  .banners{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .banner{
+    display:flex;align-items:center;gap:12px;padding:10px 26px;
+    border-radius:0 60px 60px 0;min-width:270px;position:relative;
+    box-shadow:0 4px 10px rgba(0,0,0,.4);
+    transition:filter .3s, box-shadow .3s;
+  }
+  .banner.me{background:linear-gradient(90deg,#5f8f2c,#7fb544);}
+  .banner.foe{background:linear-gradient(270deg,#a53d34,#c4574d);border-radius:60px 0 0 60px;flex-direction:row-reverse;}
+  .banner .avatar{
+    width:56px;height:56px;border-radius:10px;border:2px solid rgba(255,255,255,.7);
+    font-size:30px;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.35);box-shadow:inset 0 0 10px rgba(0,0,0,.5);
+  }
+  .banner .pname{font-family:'Jua',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 2px rgba(0,0,0,.5);}
+  .banner .total{font-family:'Jua',sans-serif;font-size:15px;color:rgba(255,255,255,.9);}
+  .rr-chip{
+    display:none;font-family:'Jua',sans-serif;font-size:12px;color:#fff;
+    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.35);
+    border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;
+  }
+  .rr-chip.on{display:inline-block;}
+  .rr-chip.used{opacity:.45;text-decoration:line-through;}
+  .turn-chip{
+    position:absolute;top:-12px;font-family:'Jua',sans-serif;font-size:12px;letter-spacing:1px;
+    background:#fdf6e3;color:#3f6b1f;border:2px solid #3f6b1f;border-radius:999px;padding:2px 12px;
+    box-shadow:0 2px 4px rgba(0,0,0,.4);opacity:0;transform:scale(.7);transition:all .25s;
+  }
+  .banner.me .turn-chip{left:80px;}
+  .banner.foe .turn-chip{right:80px;color:#8a3129;border-color:#8a3129;}
+  .banner.active .turn-chip{opacity:1;transform:scale(1);}
+  .banner.active{box-shadow:0 0 0 3px rgba(255,244,200,.55), 0 4px 14px rgba(0,0,0,.5);}
+  .banner:not(.active){filter:saturate(.75) brightness(.85);}
+
+  .board{
+    display:grid;
+    grid-template-columns:150px 1fr 118px 1fr 150px;
+    gap:14px;align-items:stretch;
+  }
+  .tray{
+    border-radius:14px;border:4px solid #20130a;
+    box-shadow:inset 0 0 24px rgba(0,0,0,.65), 0 2px 6px rgba(0,0,0,.3);
+    display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;
+    min-height:100%;position:relative;
+  }
+  .tray.me{background:linear-gradient(160deg,#57831f,#3c5c14);}
+  .tray.foe{background:linear-gradient(160deg,#8a3129,#5e1f19);}
+  .tray-label{
+    position:absolute;bottom:8px;left:0;right:0;text-align:center;
+    font-size:12px;color:rgba(255,255,255,.55);font-family:'Jua',sans-serif;letter-spacing:1px;
+  }
+
+  .lanes{display:flex;flex-direction:column;gap:14px;justify-content:center;}
+  .lane{
+    height:92px;border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 12px;
+    background:rgba(0,0,0,.22);border:2px solid rgba(245,237,218,.35);
+    box-shadow:inset 0 2px 10px rgba(0,0,0,.4);
+    transition:border-color .15s, background .15s, box-shadow .15s;
+  }
+  .lanes.foe-side .lane{border-color:rgba(0,0,0,.45);justify-content:flex-end;background:rgba(0,0,0,.30);}
+  .lane.selectable{cursor:pointer;border-color:var(--gold);}
+  .lane.selectable:hover{
+    background:rgba(232,182,76,.14);
+    box-shadow:inset 0 0 14px rgba(232,182,76,.25), 0 0 10px rgba(232,182,76,.35);
+  }
+  .lane.selectable.shield-target{border-color:#8fc9ef;}
+  .lane.selectable.shield-target:hover{
+    background:rgba(143,201,239,.12);
+    box-shadow:inset 0 0 14px rgba(143,201,239,.3), 0 0 10px rgba(143,201,239,.4);
+  }
+  .lane.selectable.knock-lane{
+    border-style:dashed;border-color:#ff9d5c;position:relative;
+  }
+  .lane.selectable.knock-lane::after{
+    content:"💥";position:absolute;right:-4px;top:-12px;font-size:18px;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.6));
+    animation:knockBadge .8s infinite;
+  }
+  @keyframes knockBadge{50%{transform:scale(1.25) rotate(-8deg);}}
+  .lane.selectable.knock-lane:hover{
+    background:rgba(255,120,60,.14);
+    box-shadow:inset 0 0 14px rgba(255,140,80,.3), 0 0 12px rgba(255,140,80,.45);
+  }
+  .lane.full-lane{opacity:.85;}
+
+  .mid{display:flex;flex-direction:column;gap:14px;justify-content:center;}
+  .vs-cell{height:92px;display:flex;align-items:center;justify-content:center;gap:2px;font-family:'Jua',sans-serif;}
+  .score-bubble{
+    width:44px;height:44px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #241505, #120a03);
+    border:2px solid #55391f;display:flex;align-items:center;justify-content:center;
+    font-size:19px;box-shadow:0 3px 6px rgba(0,0,0,.5), inset 0 1px 2px rgba(255,255,255,.08);
+    transition:transform .2s, border-color .3s;
+  }
+  .score-bubble.pop{animation:bubblePop .35s;}
+  @keyframes bubblePop{40%{transform:scale(1.25);}100%{transform:scale(1);}}
+  .score-bubble.g{color:#9fdd5c;} .score-bubble.r{color:#ff8d80;}
+  .score-bubble.lane-won{border-color:var(--gold);box-shadow:0 0 10px rgba(232,182,76,.5);}
+  .vs-arrow{width:22px;text-align:center;font-size:17px;color:#6b4a30;transition:color .2s, transform .2s;}
+  .vs-arrow.left{color:#9fdd5c;transform:scale(1.2);}
+  .vs-arrow.right{color:#ff8d80;transform:scale(1.2);}
+
+  .die{
+    width:64px;height:64px;border-radius:12px;
+    background:linear-gradient(160deg,#fbf4e2,#e7dcc2);
+    box-shadow:inset -3px -4px 6px rgba(140,110,70,.35),inset 2px 3px 4px rgba(255,255,255,.9),0 4px 6px rgba(0,0,0,.45);
+    display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);
+    padding:9px;position:relative;flex:0 0 auto;
+  }
+  .die .pip{
+    width:11px;height:11px;border-radius:50%;
+    align-self:center;justify-self:center;
+    box-shadow:inset 0 -2px 2px rgba(0,0,0,.35);
+  }
+  .die.mine .pip{background:radial-gradient(circle at 35% 30%, #86c04a, #47761f);}
+  .die.theirs .pip{background:radial-gradient(circle at 35% 30%, #e0685c, #93362c);}
+  .die.mine{outline:2px solid rgba(107,166,50,.55);}
+  .die.theirs{outline:2px solid rgba(193,82,74,.55);}
+  .die.shield{
+    background:linear-gradient(160deg,#e6eef6,#b7c8d8);
+    box-shadow:inset -3px -4px 6px rgba(80,105,135,.4),inset 2px 3px 4px rgba(255,255,255,.95),0 4px 6px rgba(0,0,0,.45);
+  }
+  .die.shield::after{
+    content:"🛡";position:absolute;right:1px;bottom:-1px;font-size:13px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));
+  }
+  .die.stack2{outline:3px solid var(--gold);box-shadow:0 0 12px rgba(232,182,76,.5),0 4px 6px rgba(0,0,0,.45);}
+  .die.stack3{outline:3px solid #ffde7a;box-shadow:0 0 18px rgba(255,222,122,.85),0 4px 6px rgba(0,0,0,.45);}
+  .die.placed{animation:diePlace .3s;}
+  @keyframes diePlace{0%{transform:scale(1.5) rotate(-8deg);opacity:0;}100%{transform:scale(1) rotate(0);opacity:1;}}
+  .die.destroyed{animation:dieBreak .45s forwards;}
+  @keyframes dieBreak{
+    0%{transform:rotate(0) scale(1);opacity:1;filter:none;}
+    30%{transform:rotate(-14deg) scale(1.08);filter:brightness(1.6) sepia(1) hue-rotate(-40deg);}
+    100%{transform:rotate(20deg) scale(.2) translateY(30px);opacity:0;}
+  }
+  .die.knock-target{animation:knockPulse .6s infinite;}
+  @keyframes knockPulse{
+    50%{outline:3px solid #ffde7a;box-shadow:0 0 16px rgba(255,222,122,.85);transform:scale(1.07);}
+  }
+  .tray .die{width:66px;height:66px;cursor:default;}
+  .tray .die.rolling{animation:rollShake .09s infinite;}
+  .tray .die.choose{cursor:pointer;transition:transform .15s;}
+  .tray .die.choose:hover{transform:scale(1.12);outline:3px solid var(--gold);}
+  .tray .choose-label{
+    font-family:'Jua',sans-serif;font-size:12px;color:#ffe9b0;
+    text-shadow:0 1px 2px rgba(0,0,0,.7);
+  }
+  @keyframes rollShake{
+    0%{transform:rotate(-7deg) translate(-2px,1px);}
+    50%{transform:rotate(6deg) translate(2px,-2px);}
+    100%{transform:rotate(-4deg) translate(-1px,2px);}
+  }
+
+  .bottom-row{margin-top:16px;text-align:center;}
+  .status-text{
+    font-family:'Jua',sans-serif;font-size:16px;color:#efe4c8;
+    text-shadow:0 2px 3px rgba(0,0,0,.6);min-height:24px;margin-bottom:10px;
+  }
+  .btn-cluster{display:flex;gap:12px;justify-content:center;align-items:center;}
+  .main-btn{
+    font-family:'Jua',sans-serif;font-size:20px;letter-spacing:2px;
+    padding:12px 46px;border-radius:14px;border:2px solid #d8cfae;color:#fff;
+    background:linear-gradient(180deg,#a9b0ac,#6f7672);
+    box-shadow:0 5px 0 #3a3f3c, 0 8px 12px rgba(0,0,0,.45);
+    cursor:pointer;transition:transform .08s, filter .2s;
+    text-shadow:0 2px 2px rgba(0,0,0,.5);
+  }
+  .main-btn.ready{background:linear-gradient(180deg,#95c653,#54832a);box-shadow:0 5px 0 #2f4b15,0 8px 12px rgba(0,0,0,.45);}
+  .main-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #2f4b15,0 4px 8px rgba(0,0,0,.45);}
+  .main-btn:disabled{cursor:default;filter:grayscale(.5) brightness(.8);}
+  .main-btn:disabled:active{transform:none;}
+  .sub-btn{
+    display:none;
+    font-family:'Jua',sans-serif;font-size:16px;letter-spacing:1px;
+    padding:10px 22px;border-radius:12px;border:2px solid #d8cfae;color:#fff;
+    background:linear-gradient(180deg,#6fa6d8,#37628f);
+    box-shadow:0 4px 0 #1e3a58, 0 6px 10px rgba(0,0,0,.4);
+    cursor:pointer;text-shadow:0 2px 2px rgba(0,0,0,.5);
+    transition:transform .08s;
+  }
+  .sub-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #1e3a58;}
+  .sub-btn.show{display:inline-block;}
+  .modal-back{
+    position:fixed;inset:0;background:rgba(10,5,2,.72);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;
+  }
+  .modal-back.show{opacity:1;pointer-events:auto;}
+  .modal{
+    width:min(560px,92vw);max-height:88vh;overflow-y:auto;
+    background:linear-gradient(180deg,#5a4128,#3c2a18);
+    border:4px solid #20130a;outline:2px solid #6b4a30;border-radius:20px;
+    padding:26px 30px;box-shadow:0 16px 40px rgba(0,0,0,.7);
+    transform:scale(.9);transition:transform .25s;text-align:center;position:relative;
+  }
+  .modal-back.show .modal{transform:scale(1);}
+  .modal h2{font-family:'Jua',sans-serif;font-size:26px;margin-bottom:14px;color:var(--gold);text-shadow:0 2px 0 rgba(0,0,0,.5);}
+  .modal .rule-list{text-align:left;font-size:14.5px;line-height:1.7;color:#efe4c8;}
+  .modal .rule-list b{color:#ffd97a;}
+  .modal .result-big{font-family:'Jua',sans-serif;font-size:42px;margin:6px 0 4px;text-shadow:0 3px 0 rgba(0,0,0,.5);}
+  .result-big.win{color:#a4e05f;} .result-big.lose{color:#ff8d80;} .result-big.draw{color:#e9dcc0;}
+  .modal .result-sub{font-size:16px;color:#dcd0b4;margin-bottom:6px;}
+  .modal .result-tp{font-family:'Jua',sans-serif;font-size:19px;margin-bottom:16px;}
+  .modal-btn{
+    font-family:'Jua',sans-serif;font-size:17px;color:#fff;
+    background:linear-gradient(180deg,#95c653,#54832a);
+    border:2px solid #d8cfae;border-radius:12px;padding:9px 34px;cursor:pointer;
+    box-shadow:0 4px 0 #2f4b15;margin-top:8px;
+  }
+  .modal-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #2f4b15;}
+  .modal-btn.gray{background:linear-gradient(180deg,#9a9a90,#63635a);box-shadow:0 4px 0 #3c3c36;border-color:#c9c9b8;}
+  .modal .close-x{position:absolute;top:10px;right:16px;font-size:20px;color:#cbb489;cursor:pointer;}
+
+  .float-score{
+    position:absolute;font-family:'Jua',sans-serif;font-size:20px;pointer-events:none;
+    animation:floatUp 1s forwards;text-shadow:0 2px 2px rgba(0,0,0,.7);z-index:30;
+  }
+  @keyframes floatUp{0%{opacity:0;transform:translateY(6px);}25%{opacity:1;}100%{opacity:0;transform:translateY(-34px);}}
+
+  /* ══════ 로비 ══════ */
+  #lobbyScreen{
+    width:min(560px,94vw);
+    background:radial-gradient(ellipse at 50% 30%, #6b4a2e 0%, #4d3520 65%, #3a2716 100%);
+    border-radius:32px;border:8px solid #241708;outline:3px solid #55391f;
+    box-shadow:inset 0 0 50px rgba(0,0,0,.5), 0 16px 36px rgba(0,0,0,.6);
+    padding:32px 36px;margin-bottom:30px;text-align:center;
+  }
+  .lobby-title{font-family:'Jua',sans-serif;font-size:22px;color:var(--gold);margin-bottom:18px;text-shadow:0 2px 0 rgba(0,0,0,.5);}
+  .field-label{font-family:'Jua',sans-serif;font-size:14px;color:#dcd0b4;text-align:left;margin:12px 0 5px;}
+  .lobby-input{
+    width:100%;padding:12px 16px;font-size:18px;
+    font-family:'Jua',sans-serif;letter-spacing:2px;
+    background:rgba(15,9,4,.65);color:#fff;
+    border:2px solid #6b4a30;border-radius:12px;outline:none;text-align:center;
+  }
+  .lobby-input:focus{border-color:var(--gold);box-shadow:0 0 10px rgba(232,182,76,.4);}
+  .lobby-input::placeholder{color:#8f7a58;letter-spacing:1px;}
+  .rule-toggle{display:flex;gap:8px;}
+  .rule-opt{
+    flex:1;font-family:'Jua',sans-serif;font-size:15px;color:#cbb489;
+    background:rgba(15,9,4,.5);border:2px solid #6b4a30;border-radius:12px;
+    padding:10px 4px;cursor:pointer;transition:all .15s;
+  }
+  .rule-opt.selected{
+    color:#2a1a10;background:linear-gradient(180deg,#ffd97a,#e0a942);
+    border-color:#fff0c8;box-shadow:0 0 12px rgba(232,182,76,.4);
+  }
+  .rule-desc{
+    text-align:left;font-size:12.5px;color:#cbb489;line-height:1.55;
+    background:rgba(0,0,0,.25);border-radius:10px;padding:9px 13px;margin-top:8px;
+    min-height:52px;
+  }
+  .lobby-divider{
+    display:flex;align-items:center;gap:12px;margin:20px 0;
+    color:#8f7a58;font-family:'Jua',sans-serif;font-size:13px;
+  }
+  .lobby-divider::before,.lobby-divider::after{content:"";flex:1;height:1px;background:#5c4327;}
+  .lobby-btn{
+    width:100%;font-family:'Jua',sans-serif;font-size:19px;letter-spacing:2px;color:#fff;
+    padding:13px;border-radius:14px;border:2px solid #d8cfae;cursor:pointer;
+    text-shadow:0 2px 2px rgba(0,0,0,.5);transition:transform .08s;margin-top:8px;
+  }
+  .lobby-btn.single{background:linear-gradient(180deg,#e0b04f,#a8752a);box-shadow:0 5px 0 #6a4816;}
+  .lobby-btn.create{background:linear-gradient(180deg,#95c653,#54832a);box-shadow:0 5px 0 #2f4b15;}
+  .lobby-btn.join{background:linear-gradient(180deg,#c4574d,#8a3129);box-shadow:0 5px 0 #501a15;}
+  .lobby-btn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.5);}
+  .lobby-btn:disabled{filter:grayscale(.6) brightness(.8);cursor:default;}
+  .join-row{display:flex;gap:10px;align-items:stretch;}
+  .join-row .lobby-input{flex:1;text-transform:uppercase;}
+  .join-row .lobby-btn{width:auto;padding:0 26px;margin-top:0;}
+  .join-note{font-size:12px;color:#8f7a58;text-align:left;margin-top:5px;}
+  .lobby-error{
+    min-height:22px;margin-top:12px;font-family:'Jua',sans-serif;
+    font-size:14px;color:#ff9d92;text-shadow:0 1px 2px rgba(0,0,0,.6);
+  }
+
+  #waitScreen{display:none;}
+  .code-display{
+    font-family:'Jua',sans-serif;font-size:52px;letter-spacing:14px;color:#fff;
+    background:rgba(15,9,4,.65);border:3px dashed var(--gold);border-radius:18px;
+    padding:16px 10px 16px 24px;margin:14px 0 6px;
+    text-shadow:0 3px 0 #7a4d1c;cursor:pointer;transition:box-shadow .2s;
+  }
+  .code-display:hover{box-shadow:0 0 16px rgba(232,182,76,.45);}
+  .code-hint{font-size:13px;color:#cbb489;margin-bottom:8px;}
+  .wait-rule{font-family:'Jua',sans-serif;font-size:15px;color:#ffd97a;margin-bottom:8px;}
+  .waiting-dots{font-family:'Jua',sans-serif;font-size:17px;color:#dcd0b4;margin-top:10px;}
+  .waiting-dots::after{content:"";animation:dots 1.5s infinite steps(4);}
+  @keyframes dots{0%{content:"";}25%{content:".";}50%{content:"..";}75%{content:"...";}}
+
+  #gameArea{display:none;flex-direction:column;align-items:center;width:100%;}
+
+  @media (max-width:820px){
+    .board{grid-template-columns:90px 1fr 70px 1fr 90px;gap:8px;}
+    .die{width:44px;height:44px;padding:6px;border-radius:9px;}
+    .die .pip{width:8px;height:8px;}
+    .die.shield::after{font-size:10px;}
+    .tray .die{width:50px;height:50px;}
+    .lane{height:66px;gap:5px;padding:0 6px;}
+    .vs-cell{height:66px;}
+    .score-bubble{width:34px;height:34px;font-size:15px;}
+    .banner{min-width:0;padding:8px 14px;}
+    .banner .avatar{width:40px;height:40px;font-size:22px;}
+    .banner .pname{font-size:15px;}
+    .code-display{font-size:36px;letter-spacing:8px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">미니게임 : 티카투카<span class="room-badge" id="roomBadge" style="display:none;"></span></div>
+
+<div class="logo">
+  <span class="dice-deco">🎲</span>
+  <span class="ko">티카투카</span>
+  <span class="dice-deco">🎲</span>
+  <span class="en">TikaTuka</span>
+</div>
+
+<!-- ══════ 로비 ══════ -->
+<div id="lobbyScreen">
+  <div id="lobbyMain">
+    <div class="lobby-title">로스트아크보고 따라만든 바로 그 게임</div>
+
+    <div class="field-label">닉네임</div>
+    <input class="lobby-input" id="nickInput" maxlength="10" placeholder="닉네임 입력 (최대 10자)">
+
+    <div class="field-label">게임 룰</div>
+    <div class="rule-toggle">
+      <button class="rule-opt selected" data-rule="classic" onclick="selectRule('classic')">클래식 룰</button>
+      <button class="rule-opt" data-rule="shield" onclick="selectRule('shield')">로아룰</button>
+    </div>
+    <div class="rule-desc" id="ruleDesc"></div>
+
+    <button class="lobby-btn single" onclick="startSingle()">싱글 플레이</button>
+
+    <div class="lobby-divider">친구와 함께 (2인 대전)</div>
+    <button class="lobby-btn create" id="createBtn" onclick="createRoom()">방 만들기</button>
+    <div class="join-row" style="margin-top:10px;">
+      <input class="lobby-input" id="codeInput" maxlength="4" placeholder="입장코드 4자리">
+      <button class="lobby-btn join" id="joinBtn" onclick="joinRoom()">입장</button>
+    </div>
+    <div class="join-note">※ 입장 시 게임 룰은 방장의 설정을 따릅니다.</div>
+    <div class="lobby-error" id="lobbyError"></div>
+  </div>
+
+  <div id="waitScreen">
+    <div class="lobby-title">방이 만들어졌습니다!</div>
+    <div class="code-display" id="codeDisplay" onclick="copyCode()" title="클릭해서 복사">----</div>
+    <div class="code-hint">코드를 클릭하면 복사됩니다. 친구에게 알려주세요!</div>
+    <div class="wait-rule" id="waitRule"></div>
+    <div class="waiting-dots">상대방을 기다리는 중</div>
+    <button class="lobby-btn join" style="margin-top:22px;" onclick="cancelRoom()">방 닫기</button>
+  </div>
+</div>
+
+<!-- ══════ 게임 화면 ══════ -->
+<div id="gameArea">
+  <div class="util-row">
+    <button class="util-btn green" onclick="openRules()">게임 규칙</button>
+    <button class="util-btn red" onclick="leaveToLobby()">나가기</button>
+  </div>
+
+  <div class="tp-bar">
+    <span>보유 중인 티카투카 포인트 :</span>
+    <span class="coin">🪙</span><b id="tpValue">0</b><span>TP</span>
+    <span class="tp-delta" id="tpDelta"></span>
+  </div>
+
+  <div class="table-wrap">
+    <div class="banners">
+      <div class="banner me" id="bannerMe">
+        <div class="avatar">😎</div>
+        <div>
+          <div class="pname"><span id="nameMe">나</span><span class="rr-chip" id="rrMe">🔁×1</span></div>
+          <div class="total">총점 <span id="totalMe">0</span></div>
+        </div>
+        <div class="turn-chip">✊ TURN</div>
+      </div>
+      <div class="banner foe" id="bannerFoe">
+        <div class="avatar" id="avatarFoe">😎</div>
+        <div>
+          <div class="pname"><span class="rr-chip" id="rrFoe">🔁×1</span><span id="nameFoe">상대</span></div>
+          <div class="total">총점 <span id="totalFoe">0</span></div>
+        </div>
+        <div class="turn-chip">✊ TURN</div>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="tray me" id="trayMe"><div class="tray-label">내 주사위</div></div>
+
+      <div class="lanes me-side" id="lanesMe">
+        <div class="lane" data-lane="0"></div>
+        <div class="lane" data-lane="1"></div>
+        <div class="lane" data-lane="2"></div>
+      </div>
+
+      <div class="mid" id="mid">
+        <div class="vs-cell">
+          <div class="score-bubble g" id="sMe0">0</div>
+          <div class="vs-arrow" id="arr0">—</div>
+          <div class="score-bubble r" id="sFoe0">0</div>
+        </div>
+        <div class="vs-cell">
+          <div class="score-bubble g" id="sMe1">0</div>
+          <div class="vs-arrow" id="arr1">—</div>
+          <div class="score-bubble r" id="sFoe1">0</div>
+        </div>
+        <div class="vs-cell">
+          <div class="score-bubble g" id="sMe2">0</div>
+          <div class="vs-arrow" id="arr2">—</div>
+          <div class="score-bubble r" id="sFoe2">0</div>
+        </div>
+      </div>
+
+      <div class="lanes foe-side" id="lanesFoe">
+        <div class="lane" data-lane="0"></div>
+        <div class="lane" data-lane="1"></div>
+        <div class="lane" data-lane="2"></div>
+      </div>
+
+      <div class="tray foe" id="trayFoe"><div class="tray-label">상대 주사위</div></div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="status-text" id="statusText"></div>
+      <div class="btn-cluster" id="btnCluster">
+        <button class="main-btn ready" id="mainBtn" onclick="onMainBtn()">🎲 주사위 굴리기</button>
+        <button class="sub-btn" id="rerollBtn" onclick="onReroll()">🔁 리롤 (1회)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 규칙 모달 -->
+<div class="modal-back" id="rulesModal">
+  <div class="modal">
+    <div class="close-x" onclick="closeRules()">✕</div>
+    <h2 id="rulesTitle">📜 게임 규칙</h2>
+    <div class="rule-list" id="rulesClassic">
+      • 주사위를 굴린 뒤, 내 쪽 <b>3개의 줄</b> 중 하나에 놓습니다. (줄마다 최대 3개)<br>
+      • 같은 줄에 <b>같은 눈</b>이 모이면 점수가 뻥튀기! — 눈 × 개수 × 개수<br>
+      &nbsp;&nbsp;(예: 4가 2개 = 16점, 4가 3개 = 36점)<br>
+      • 내가 놓은 눈과 <b>같은 눈</b>이 상대의 같은 줄에 있으면, 상대 주사위는 자동 <b>파괴</b>됩니다!<br>
+      • 어느 한쪽의 칸 9개가 모두 차면 게임 종료 — <b>총점이 높은 쪽이 승리</b>합니다.<br>
+      • 승리 시 베팅한 <b>500 TP</b>를 획득하고, 패배 시 잃습니다.
+    </div>
+    <div class="rule-list" id="rulesShield" style="display:none;">
+      <b>[점수]</b><br>
+      • 줄 점수 = 주사위 <b>합계</b> + 같은 눈 보너스(눈 × (개수−1))<br>
+      &nbsp;&nbsp;(예: 4·4 = 8+4 = <b>12점</b>, 4·4·4 = 12+8 = <b>20점</b>)<br>
+      <b>[승리 조건]</b><br>
+      • 3줄 중 <b>2줄 이상</b>에서 점수가 높으면 승리! 줄 승수가 같으면 <b>총점</b>으로 승부합니다.<br>
+      <b>[주사위 종류]</b><br>
+      • <b>일반 주사위</b>: 내 보드에만 놓을 수 있습니다.<br>
+      • <b>실드 주사위</b>: 양쪽 보드 어디든 놓을 수 있고, 알까기로 제거되지 않습니다. 놓인 보드 주인의 점수로 계산되니 <b>낮은 눈으로 상대 자리를 방해</b>하세요!<br>
+      • 게임 <b>첫 턴(선공)</b>의 주사위는 실드이며, 자기 보드에만 놓습니다.<br>
+      <b>[알까기]</b><br>
+      • 굴린 일반 주사위와 <b>같은 눈</b>의 일반 주사위가 상대의 같은 줄에 있으면, 그 줄에 놓는 순간 <b>무조건 알까기</b>가 발생합니다!<br>
+      • 내 주사위와 상대의 같은 눈 일반 주사위가 <b>전부 함께 제거</b>됩니다. (내 주사위는 보드에 놓이지 않고 소모)<br>
+      • 알까기 발생 시 보상으로 <b>실드 주사위 1개</b>를 얻어 즉시 굴려서 배치합니다.<br>
+      <b>[리롤]</b><br>
+      • 판마다 <b>1회</b>, 굴린 주사위를 다시 굴려 두 눈 중 하나를 선택할 수 있습니다.<br>
+      <b>[종료]</b><br>
+      • 보드가 가득 찬 플레이어의 턴은 건너뜁니다. <b>양쪽 보드가 모두 차면</b> 게임이 끝납니다.
+    </div>
+  </div>
+</div>
+
+<!-- 결과 모달 -->
+<div class="modal-back" id="resultModal">
+  <div class="modal">
+    <h2>승부 결과</h2>
+    <div class="result-big" id="resultBig">승리!</div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="result-tp" id="resultTp"></div>
+    <button class="modal-btn" id="rematchBtn" onclick="requestRematch()">🎲 다시하기</button>
+    <button class="modal-btn gray" onclick="leaveToLobby()">로비로</button>
+    <div style="font-size:13px;color:#cbb489;margin-top:10px;min-height:18px;" id="rematchStatus"></div>
+  </div>
+</div>
+
+<!-- 상대 퇴장 모달 -->
+<div class="modal-back" id="leftModal">
+  <div class="modal">
+    <h2>상대방이 나갔습니다</h2>
+    <div class="result-sub">연결이 끊어졌거나 상대가 게임을 떠났습니다.</div>
+    <button class="modal-btn" onclick="leaveToLobby()">로비로 돌아가기</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ═══════════ Supabase 설정 ═══════════ */
+const SUPABASE_URL = "https://xfyzrqsbdweckjgxefjr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_CFQn2cVa58AV-iRDqq0QfQ_Hy4rARoV";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ═══════════ 상수/상태 ═══════════ */
+const BET = 500;
+const AI_NAME = "상대";
+const RULE_NAME = { classic: "클래식 룰", shield: "로아룰" };
+const RULE_DESC = {
+  classic: "너클본스 원작 방식. 같은 눈을 겹치면 눈×개수²로 점수가 폭증하고, 상대의 같은 줄에 같은 눈이 있으면 자동으로 파괴됩니다. 한쪽 보드가 다 차면 총점으로 승부!",
+  shield: "로스트아크 티카투카 룰! 줄 점수 = 합계 + 같은 눈 보너스. 3줄 중 2줄을 이기면 승리! 실드 주사위(상대 보드에도 배치 가능, 파괴 불가), 알까기(같은 눈끼리 맞부딪혀 함께 제거 + 실드 보상), 리롤권 1회. 양쪽 보드가 모두 차야 종료됩니다."
+};
+
+let tp = 0;
+let rule = "classic";          // 진행 중인 게임의 룰
+let selectedRule = "classic";  // 로비에서 고른 룰
+let board = { me: [[],[],[]], foe: [[],[],[]] }; // 주사위: {v:눈, s:실드여부}
+let phase = "lobby";           // lobby|idle|rollingMe|chooseDie|placingMe|knockOffer|waitFoe|over
+let pending = null;            // {v, alt, shield, targets:'own'|'both', stage:'main'|'reward'}
+let rerolls = { me: 1, foe: 1 };
+let turnCount = 0;
+let record = { w: 0, l: 0, d: 0 };
+
+let mode = null;               // "single" | "multi"
+let channel = null;
+let myRole = null;             // "host" | "guest" (싱글: 나=host, AI=guest)
+let myName = "";
+let foeName = "";
+let roomCode = "";
+let turnRole = "host";
+let firstRole = "host";
+let rematchFlags = { me: false, foe: false };
+const clientId = "c_" + Math.random().toString(36).slice(2, 10);
+
+const $ = id => document.getElementById(id);
+const lanesMeEl  = $("lanesMe");
+const lanesFoeEl = $("lanesFoe");
+const rand6 = () => 1 + Math.floor(Math.random() * 6);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const otherRole = r => r === "host" ? "guest" : "host";
+const boardOfRole = r => r === myRole ? "me" : "foe";
+const nameOfRole = r => r === myRole ? myName : foeName;
+
+/* ═══════════ 주사위 DOM ═══════════ */
+const PIP_MAP = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
+function makeDie(value, owner, shield){
+  const d = document.createElement("div");
+  d.className = `die ${owner === "me" ? "mine" : "theirs"}${shield ? " shield" : ""}`;
+  d.dataset.value = value;
+  for(let i = 0; i < 9; i++){
+    const cell = document.createElement("div");
+    cell.style.gridArea = `${Math.floor(i/3)+1} / ${(i%3)+1}`;
+    if(PIP_MAP[value].includes(i)) cell.className = "pip";
+    d.appendChild(cell);
+  }
+  return d;
+}
+
+/* ═══════════ 점수 계산 ═══════════ */
+function laneScore(arr){
+  const cnt = {};
+  arr.forEach(d => cnt[d.v] = (cnt[d.v] || 0) + 1);
+  if(rule === "classic"){
+    let s = 0;
+    for(const v in cnt) s += Number(v) * cnt[v] * cnt[v];
+    return s;
+  }
+  // 로아룰: 합계 + 같은 눈 보너스(눈 × (개수-1))
+  let sum = 0, bonus = 0;
+  arr.forEach(d => sum += d.v);
+  for(const v in cnt) if(cnt[v] >= 2) bonus += Number(v) * (cnt[v] - 1);
+  return sum + bonus;
+}
+function totalScore(side){ return board[side].reduce((a, l) => a + laneScore(l), 0); }
+function isFull(side){ return board[side].every(l => l.length >= 3); }
+function laneHasSpace(side, i){ return board[side][i].length < 3; }
+function anySpace(side){ return board[side].some(l => l.length < 3); }
+
+/* ═══════════ 렌더 ═══════════ */
+function renderLane(side, i){
+  const wrap = (side === "me" ? lanesMeEl : lanesFoeEl).children[i];
+  wrap.innerHTML = "";
+  const arr = board[side][i];
+  const cnt = {};
+  arr.forEach(d => cnt[d.v] = (cnt[d.v] || 0) + 1);
+  arr.forEach(d => {
+    const el = makeDie(d.v, side, d.s);
+    if(cnt[d.v] === 2) el.classList.add("stack2");
+    if(cnt[d.v] >= 3) el.classList.add("stack3");
+    wrap.appendChild(el);
+  });
+  wrap.classList.toggle("full-lane", arr.length >= 3);
+}
+function renderScores(){
+  for(let i = 0; i < 3; i++){
+    const ms = laneScore(board.me[i]), fs = laneScore(board.foe[i]);
+    updateBubble($("sMe"+i), ms);
+    updateBubble($("sFoe"+i), fs);
+    const arr = $("arr"+i);
+    arr.className = "vs-arrow";
+    if(ms > fs){ arr.textContent = "◀"; arr.classList.add("left"); }
+    else if(fs > ms){ arr.textContent = "▶"; arr.classList.add("right"); }
+    else arr.textContent = "—";
+    // 로아룰: 줄 승리 강조
+    $("sMe"+i).classList.toggle("lane-won", rule === "shield" && ms > fs);
+    $("sFoe"+i).classList.toggle("lane-won", rule === "shield" && fs > ms);
+  }
+  $("totalMe").textContent  = totalScore("me");
+  $("totalFoe").textContent = totalScore("foe");
+}
+function updateBubble(el, val){
+  if(el.textContent !== String(val)){
+    el.textContent = val;
+    el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+  }
+}
+function renderAll(){
+  for(let i = 0; i < 3; i++){ renderLane("me", i); renderLane("foe", i); }
+  renderScores();
+}
+function setStatus(t){ $("statusText").textContent = t; }
+function setTurnBanner(who){
+  $("bannerMe").classList.toggle("active", who === "me");
+  $("bannerFoe").classList.toggle("active", who === "foe");
+}
+function updateTp(delta){
+  tp += delta;
+  $("tpValue").textContent = tp.toLocaleString();
+  const d = $("tpDelta");
+  if(delta !== 0){
+    d.textContent = (delta > 0 ? "+" : "") + delta.toLocaleString();
+    d.className = "tp-delta " + (delta > 0 ? "tp-up" : "tp-down");
+    setTimeout(() => { d.textContent = ""; }, 2500);
+  }
+}
+function updateRerollChips(){
+  const on = rule === "shield";
+  [["rrMe", rerolls.me], ["rrFoe", rerolls.foe]].forEach(([id, n]) => {
+    const el = $(id);
+    el.classList.toggle("on", on);
+    el.classList.toggle("used", n <= 0);
+    el.textContent = `🔁×${Math.max(0, n)}`;
+  });
+}
+function floatText(anchorEl, text, color){
+  const r = anchorEl.getBoundingClientRect();
+  const f = document.createElement("div");
+  f.className = "float-score";
+  f.textContent = text;
+  f.style.color = color;
+  f.style.left = (r.left + r.width/2 - 30 + window.scrollX) + "px";
+  f.style.top  = (r.top + window.scrollY) + "px";
+  document.body.appendChild(f);
+  setTimeout(() => f.remove(), 1000);
+}
+
+/* ═══════════ 트레이 연출 ═══════════ */
+function rollAnimation(traySide, finalValue, shield, keep){
+  return new Promise(res => {
+    const tray = traySide === "me" ? $("trayMe") : $("trayFoe");
+    if(!keep){
+      tray.querySelectorAll(".die").forEach(e => e.remove());
+      tray.querySelectorAll(".choose-label").forEach(e => e.remove());
+    }
+    let cur = makeDie(1, traySide, shield);
+    cur.classList.add("rolling");
+    tray.insertBefore(cur, tray.querySelector(".tray-label"));
+    let ticks = 0;
+    const iv = setInterval(() => {
+      ticks++;
+      const nd = makeDie(rand6(), traySide, shield);
+      nd.classList.add("rolling");
+      cur.replaceWith(nd);
+      cur = nd;
+      if(ticks >= 10){
+        clearInterval(iv);
+        const fd = makeDie(finalValue, traySide, shield);
+        fd.classList.add("placed");
+        cur.replaceWith(fd);
+        setTimeout(() => res(fd), 250);
+      }
+    }, 80);
+  });
+}
+function clearTray(side){
+  const tray = side === "me" ? $("trayMe") : $("trayFoe");
+  tray.querySelectorAll(".die").forEach(e => e.remove());
+  tray.querySelectorAll(".choose-label").forEach(e => e.remove());
+}
+
+/* ═══════════ 보드 조작 ═══════════ */
+function addDieToBoard(side, lane, die){
+  board[side][lane].push(die);
+  renderLane(side, lane);
+  const wrap = (side === "me" ? lanesMeEl : lanesFoeEl).children[lane];
+  const el = wrap.lastElementChild;
+  if(el) el.classList.add("placed");
+  renderScores();
+}
+/* 알까기/파괴: 대상 줄에서 같은 눈의 일반 주사위 제거 (실드는 유지) */
+function applyKnock(side, lane, value, label){
+  const wrap = (side === "me" ? lanesMeEl : lanesFoeEl).children[lane];
+  board[side][lane].forEach((d, idx) => {
+    if(!d.s && d.v === value){
+      const el = wrap.children[idx];
+      if(el){ el.classList.remove("knock-target"); el.classList.add("destroyed"); }
+    }
+  });
+  board[side][lane] = board[side][lane].filter(d => d.s || d.v !== value);
+  floatText(wrap, label || "알까기!", "#ffde7a");
+  setTimeout(() => { renderLane(side, lane); renderScores(); }, 450);
+  renderScores();
+}
+/* 클래식: 배치 시 상대 같은 줄의 같은 눈 자동 파괴 */
+function classicAutoDestroy(placerSide, lane, value){
+  const other = placerSide === "me" ? "foe" : "me";
+  if(board[other][lane].some(d => d.v === value)){
+    applyKnock(other, lane, value, "파괴!");
+  }
+}
+
+/* ═══════════ 하이라이트 ═══════════ */
+function highlightTargets(on){
+  [...lanesMeEl.children].forEach((el, i) => {
+    const ok = !!(on && pending && laneHasSpace("me", i));
+    el.classList.toggle("selectable", ok);
+    el.classList.toggle("shield-target", ok && !!pending?.shield);
+  });
+  [...lanesFoeEl.children].forEach((el, i) => {
+    const ok = !!(on && pending && pending.shield && pending.targets === "both" && laneHasSpace("foe", i));
+    el.classList.toggle("selectable", ok);
+    el.classList.toggle("shield-target", ok);
+  });
+  updateKnockPreview(on);
+}
+/* 알까기가 발동될 줄과 날아갈 상대 주사위를 미리 표시 */
+function updateKnockPreview(on){
+  for(let i = 0; i < 3; i++){
+    lanesMeEl.children[i].classList.remove("knock-lane");
+    [...lanesFoeEl.children[i].children].forEach(el => el.classList.remove("knock-target"));
+  }
+  if(!on || !pending || pending.shield || rule !== "shield") return;
+  for(let i = 0; i < 3; i++){
+    if(!laneHasSpace("me", i)) continue;
+    if(board.foe[i].some(d => !d.s && d.v === pending.v)){
+      lanesMeEl.children[i].classList.add("knock-lane");
+      markKnockTargets(i, pending.v, true);
+    }
+  }
+}
+function markKnockTargets(lane, value, on){
+  const wrap = lanesFoeEl.children[lane];
+  board.foe[lane].forEach((d, idx) => {
+    if(!d.s && d.v === value){
+      const el = wrap.children[idx];
+      if(el) el.classList.toggle("knock-target", on);
+    }
+  });
+}
+
+/* ═══════════ 로비 ═══════════ */
+function selectRule(r){
+  selectedRule = r;
+  document.querySelectorAll(".rule-opt").forEach(b => {
+    b.classList.toggle("selected", b.dataset.rule === r);
+  });
+  $("ruleDesc").textContent = RULE_DESC[r];
+}
+function sanitizeName(){
+  const n = $("nickInput").value.trim();
+  return n.length ? n : "플레이어";
+}
+function genCode(){
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let c = "";
+  for(let i = 0; i < 4; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
+}
+function lobbyError(msg){ $("lobbyError").textContent = msg || ""; }
+function setLobbyBusy(b){ $("createBtn").disabled = b; $("joinBtn").disabled = b; }
+
+function startSingle(){
+  mode = "single";
+  rule = selectedRule;
+  myRole = "host";
+  myName = sanitizeName();
+  foeName = AI_NAME;
+  roomCode = "";
+  $("avatarFoe").textContent = "😍";
+  startMatch();
+}
+
+async function createRoom(){
+  lobbyError("");
+  setLobbyBusy(true);
+  mode = "multi";
+  rule = selectedRule;
+  myRole = "host";
+  myName = sanitizeName();
+  roomCode = genCode();
+  try{
+    await connectChannel(roomCode);
+    $("lobbyMain").style.display = "none";
+    $("waitScreen").style.display = "block";
+    $("codeDisplay").textContent = roomCode;
+    $("waitRule").textContent = "선택한 룰 : " + RULE_NAME[rule];
+  }catch(e){
+    lobbyError("연결에 실패했습니다. 인터넷 상태를 확인해 주세요.");
+    await teardownChannel();
+    mode = null;
+  }
+  setLobbyBusy(false);
+}
+
+async function joinRoom(){
+  lobbyError("");
+  const code = $("codeInput").value.trim().toUpperCase();
+  if(code.length !== 4){ lobbyError("입장코드 4자리를 입력해 주세요."); return; }
+  setLobbyBusy(true);
+  mode = "multi";
+  myRole = "guest";
+  myName = sanitizeName();
+  roomCode = code;
+  try{
+    await connectChannel(roomCode);
+    await wait(700);
+    const state = channel.presenceState();
+    const others = Object.entries(state)
+      .filter(([k]) => k !== clientId)
+      .map(([, v]) => v[0]);
+    const host = others.find(p => p.role === "host");
+    const guests = others.filter(p => p.role === "guest");
+    if(!host){
+      lobbyError("존재하지 않는 방입니다. 코드를 다시 확인해 주세요.");
+      await teardownChannel(); mode = null; setLobbyBusy(false); return;
+    }
+    if(guests.length >= 1){
+      lobbyError("이미 가득 찬 방입니다.");
+      await teardownChannel(); mode = null; setLobbyBusy(false); return;
+    }
+    foeName = host.name;
+    rule = host.rule === "shield" ? "shield" : "classic"; // 방장의 룰을 따름
+    $("avatarFoe").textContent = "😎";
+    startMatch();
+  }catch(e){
+    lobbyError("연결에 실패했습니다. 인터넷 상태를 확인해 주세요.");
+    await teardownChannel(); mode = null;
+  }
+  setLobbyBusy(false);
+}
+
+async function cancelRoom(){
+  await teardownChannel();
+  mode = null;
+  $("waitScreen").style.display = "none";
+  $("lobbyMain").style.display = "block";
+}
+function copyCode(){
+  navigator.clipboard?.writeText(roomCode).then(() => {
+    const el = $("codeDisplay");
+    const orig = el.textContent;
+    el.textContent = "복사됨!";
+    setTimeout(() => { el.textContent = orig; }, 900);
+  });
+}
+
+/* ═══════════ 채널 (멀티 전용) ═══════════ */
+function connectChannel(code){
+  return new Promise((resolve, reject) => {
+    channel = sb.channel("tikatuka:" + code, {
+      config: { broadcast: { self: false }, presence: { key: clientId } }
+    });
+    channel.on("broadcast", { event: "game" }, ({ payload }) => enqueueMsg(payload));
+    channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
+      if(key === clientId) return;
+      const p = newPresences[0];
+      if(myRole === "host" && p.role === "guest" && phase === "lobby"){
+        foeName = p.name;
+        $("avatarFoe").textContent = "😎";
+        startMatch();
+      }
+    });
+    channel.on("presence", { event: "leave" }, ({ key }) => {
+      if(key === clientId) return;
+      if(phase !== "lobby") onOpponentLeft();
+    });
+    const timeout = setTimeout(() => reject(new Error("timeout")), 8000);
+    channel.subscribe(async (status) => {
+      if(status === "SUBSCRIBED"){
+        clearTimeout(timeout);
+        await channel.track({ role: myRole, name: myName, rule: rule });
+        resolve();
+      } else if(status === "CHANNEL_ERROR" || status === "TIMED_OUT"){
+        clearTimeout(timeout);
+        reject(new Error(status));
+      }
+    });
+  });
+}
+async function teardownChannel(){
+  if(channel){
+    try{ await sb.removeChannel(channel); }catch(e){}
+    channel = null;
+  }
+}
+function send(payload){
+  if(mode !== "multi" || !channel) return;
+  channel.send({ type: "broadcast", event: "game", payload: { ...payload, by: myRole } });
+}
+
+/* 수신 메시지 큐 — 애니메이션 중 도착한 메시지도 순서대로 처리 */
+const msgQueue = [];
+let pumping = false;
+function enqueueMsg(m){
+  if(!m || m.by === myRole) return;
+  msgQueue.push(m);
+  pumpQueue();
+}
+async function pumpQueue(){
+  if(pumping) return;
+  pumping = true;
+  while(msgQueue.length){
+    try{ await handleMsg(msgQueue.shift()); }catch(e){ console.error(e); }
+  }
+  pumping = false;
+}
+async function handleMsg(msg){
+  switch(msg.type){
+    case "roll": {
+      if(msg.reroll){
+        rerolls.foe = Math.max(0, rerolls.foe - 1);
+        updateRerollChips();
+        setStatus(`${foeName} 님이 리롤권을 사용했습니다!`);
+        await wait(400);
+      } else {
+        setStatus(msg.reward
+          ? `🛡 ${foeName} 님이 실드 주사위를 굴립니다...`
+          : `${foeName} 님이 주사위를 굴립니다...`);
+      }
+      await rollAnimation("foe", msg.value, !!msg.shield);
+      setStatus(`${foeName} 님이 [${msg.value}] 을(를) 굴렸습니다.`);
+      break;
+    }
+    case "place": {
+      clearTray("foe");
+      const side = msg.board === "self" ? "foe" : "me"; // 보낸 쪽 기준 → 내 화면 기준
+      addDieToBoard(side, msg.lane, { v: msg.value, s: !!msg.shield });
+      if(rule === "classic" && side === "foe"){
+        classicAutoDestroy("foe", msg.lane, msg.value);
+      }
+      if(side === "me"){
+        setStatus(`🛡 ${foeName} 님이 내 보드에 실드 주사위 [${msg.value}] 을(를) 놓았습니다!`);
+      }
+      await wait(400);
+      break;
+    }
+    case "knock": {
+      setStatus(`${foeName} 님의 알까기! [${msg.value}] 주사위끼리 맞부딪혀 제거됩니다!`);
+      applyKnock("me", msg.lane, msg.value);
+      await wait(650);
+      break;
+    }
+    case "endTurn": {
+      await wait(350);
+      nextTurn();
+      break;
+    }
+    case "rematch": {
+      rematchFlags.foe = true;
+      $("rematchStatus").textContent = `${foeName} 님이 재대결을 원합니다!`;
+      checkRematch();
+      break;
+    }
+    case "bye": {
+      onOpponentLeft();
+      break;
+    }
+  }
+}
+
+/* ═══════════ 게임 시작/턴 엔진 ═══════════ */
+function startMatch(){
+  $("lobbyScreen").style.display = "none";
+  $("gameArea").style.display = "flex";
+  $("roomBadge").style.display = "inline-block";
+  $("roomBadge").textContent = (mode === "multi" ? "🔑" + roomCode : "싱글") + " · " + RULE_NAME[rule];
+  $("nameMe").textContent = myName;
+  $("nameFoe").textContent = foeName;
+  $("rulesClassic").style.display = rule === "classic" ? "block" : "none";
+  $("rulesShield").style.display  = rule === "shield"  ? "block" : "none";
+  $("rulesTitle").textContent = "📜 게임 규칙 — " + RULE_NAME[rule];
+
+  firstRole = "host";
+  resetBoardsAndStart();
+}
+
+function resetBoardsAndStart(){
+  board = { me: [[],[],[]], foe: [[],[],[]] };
+  pending = null;
+  rerolls = { me: 1, foe: 1 };
+  turnCount = 0;
+  rematchFlags = { me: false, foe: false };
+  clearTray("me"); clearTray("foe");
+  renderAll();
+  updateRerollChips();
+  highlightTargets(false);
+  $("resultModal").classList.remove("show");
+  $("rematchStatus").textContent = "";
+  $("rematchBtn").disabled = false;
+  $("rerollBtn").classList.remove("show");
+  $("mainBtn").style.display = "";
+
+  turnRole = firstRole;
+  beginTurn();
+}
+
+function beginTurn(){
+  const myTurn = turnRole === myRole;
+  setTurnBanner(myTurn ? "me" : "foe");
+  $("rerollBtn").classList.remove("show");
+  if(myTurn){
+    phase = "idle";
+    $("mainBtn").disabled = false;
+    const firstShield = rule === "shield" && turnCount === 0;
+    setStatus(firstShield
+      ? "당신의 차례! 첫 주사위는 🛡 실드입니다. 굴려서 내 보드에 놓으세요."
+      : "당신의 차례! 주사위를 굴리세요.");
+  } else {
+    phase = "waitFoe";
+    $("mainBtn").disabled = true;
+    setStatus(`${foeName} 님의 차례입니다...`);
+    if(mode === "single") setTimeout(aiTurn, 700);
+  }
+}
+
+function nextTurn(){
+  turnCount++;
+  if(rule === "classic"){
+    if(isFull("me") || isFull("foe")){ endGame(); return; }
+    turnRole = otherRole(turnRole);
+    beginTurn();
+    return;
+  }
+  // 로아룰: 양쪽 다 차면 종료, 찬 쪽은 건너뜀
+  if(isFull("me") && isFull("foe")){ endGame(); return; }
+  let nr = otherRole(turnRole);
+  if(isFull(boardOfRole(nr))){
+    setStatus(`${nameOfRole(nr)} 님의 보드가 가득 차서 턴을 건너뜁니다.`);
+    nr = turnRole; // 같은 플레이어가 계속 진행
+  }
+  turnRole = nr;
+  setTimeout(beginTurn, 500);
+}
+
+/* 내 액션 종료 → 턴 넘기기 */
+function completeMyTurn(){
+  pending = null;
+  highlightTargets(false);
+  $("rerollBtn").classList.remove("show");
+  phase = "waitFoe";
+  setTimeout(() => {
+    send({ type: "endTurn" });
+    nextTurn();
+  }, 600);
+}
+
+/* ═══════════ 내 턴: 굴리기/리롤/배치 ═══════════ */
+async function onMainBtn(){
+  if(phase !== "idle") return;
+  phase = "rollingMe";
+  $("mainBtn").disabled = true;
+  setStatus("주사위를 굴리는 중...");
+  const firstShield = rule === "shield" && turnCount === 0;
+  const v = rand6();
+  pending = { v, alt: null, shield: firstShield, targets: "own", stage: "main" };
+  send({ type: "roll", value: v, shield: firstShield });
+  await rollAnimation("me", v, firstShield);
+  phase = "placingMe";
+  setStatus(firstShield
+    ? `🛡 실드 [${v}]! 내 보드의 줄을 선택하세요.`
+    : `🎲 [${v}] 이(가) 나왔습니다! 놓을 줄을 선택하세요.`);
+  if(rule === "shield" && rerolls.me > 0) $("rerollBtn").classList.add("show");
+  highlightTargets(true);
+}
+
+async function onReroll(){
+  if(phase !== "placingMe" || !pending || rerolls.me <= 0) return;
+  rerolls.me--;
+  updateRerollChips();
+  $("rerollBtn").classList.remove("show");
+  highlightTargets(false);
+  phase = "rollingMe";
+  setStatus("리롤! 새 주사위를 굴립니다...");
+  const v2 = rand6();
+  pending.alt = v2;
+  send({ type: "roll", value: v2, shield: pending.shield, reroll: true });
+  await rollAnimation("me", v2, pending.shield, true); // 기존 주사위 유지
+  phase = "chooseDie";
+  const tray = $("trayMe");
+  tray.querySelectorAll(".die").forEach(d => d.classList.add("choose"));
+  const lbl = document.createElement("div");
+  lbl.className = "choose-label";
+  lbl.textContent = "▲ 하나를 선택!";
+  tray.insertBefore(lbl, tray.querySelector(".tray-label"));
+  setStatus(`[${pending.v}] 과 [${v2}] 중 하나를 클릭해 선택하세요!`);
+}
+
+$("trayMe").addEventListener("click", e => {
+  if(phase !== "chooseDie" || !pending) return;
+  const die = e.target.closest(".die.choose");
+  if(!die) return;
+  pending.v = Number(die.dataset.value);
+  const tray = $("trayMe");
+  tray.querySelectorAll(".die").forEach(d => {
+    d.classList.remove("choose");
+    if(d !== die) d.remove();
+  });
+  tray.querySelectorAll(".choose-label").forEach(el => el.remove());
+  phase = "placingMe";
+  setStatus(`[${pending.v}] 선택! 놓을 줄을 고르세요.`);
+  highlightTargets(true);
+});
+
+function tryPlace(side, laneEl){
+  if(phase !== "placingMe" || !pending) return;
+  if(!laneEl || !laneEl.classList.contains("selectable")) return;
+  const lane = Number(laneEl.dataset.lane);
+  const die = { v: pending.v, s: pending.shield };
+
+  // 로아룰: 일반 주사위 + 상대 같은 줄에 같은 눈 일반 주사위 → 무조건 알까기 (맞교환)
+  if(rule === "shield" && !die.s && side === "me"
+     && board.foe[lane].some(d => !d.s && d.v === die.v)){
+    executeKnockShot(lane, die.v);
+    return;
+  }
+
+  highlightTargets(false);
+  $("rerollBtn").classList.remove("show");
+  clearTray("me");
+  addDieToBoard(side, lane, die);
+  send({ type: "place", board: side === "me" ? "self" : "opp", lane, value: die.v, shield: die.s });
+
+  if(rule === "classic"){
+    classicAutoDestroy("me", lane, die.v);
+  }
+  completeMyTurn();
+}
+lanesMeEl.addEventListener("click", e => tryPlace("me", e.target.closest(".lane")));
+lanesFoeEl.addEventListener("click", e => tryPlace("foe", e.target.closest(".lane")));
+
+/* 알까기: 내 주사위는 소모되고, 상대의 같은 눈 일반 주사위와 함께 제거 → 실드 보상 */
+async function executeKnockShot(lane, value){
+  phase = "rollingMe"; // 입력 잠금
+  highlightTargets(false);
+  $("rerollBtn").classList.remove("show");
+  clearTray("me");
+  setStatus(`[${value}] 주사위끼리 맞부딪혀 모두 제거됩니다!`);
+  send({ type: "knock", lane, value });
+  applyKnock("foe", lane, value);
+  floatText(lanesMeEl.children[lane], "🎲 소모!", "#ffb0a6");
+  await wait(750);
+
+  // 보상 실드 주사위
+  setStatus("🛡 실드 주사위를 획득! 굴리는 중...");
+  const v = rand6();
+  pending = { v, alt: null, shield: true, targets: "both", stage: "reward" };
+  send({ type: "roll", value: v, shield: true, reward: true });
+  await rollAnimation("me", v, true);
+
+  if(!anySpace("me") && !anySpace("foe")){
+    clearTray("me");
+    setStatus("놓을 수 있는 칸이 없어 실드 주사위를 잃었습니다...");
+    completeMyTurn();
+    return;
+  }
+  phase = "placingMe";
+  setStatus(`🛡 실드 [${v}]! 내 보드 또는 상대 보드의 줄을 선택하세요.`);
+  if(rerolls.me > 0) $("rerollBtn").classList.add("show");
+  highlightTargets(true);
+}
+
+/* ═══════════ Enemy AI ═══════════ */
+function aiTurn(){
+  if(phase !== "waitFoe" || mode !== "single") return;
+  if(rule === "classic") aiTurnClassic();
+  else aiTurnShield();
+}
+
+/* 클래식 AI */
+function aiEvalClassic(v){
+  let best = { lane: -1, score: -Infinity };
+  for(let i = 0; i < 3; i++){
+    if(!laneHasSpace("foe", i)) continue;
+    const gain = laneScore([...board.foe[i], {v, s:false}]) - laneScore(board.foe[i]);
+    const removed = board.me[i].filter(d => d.v === v);
+    const destroyGain = removed.length
+      ? laneScore(board.me[i]) - laneScore(board.me[i].filter(d => d.v !== v))
+      : 0;
+    const sameCnt = board.foe[i].filter(d => d.v === v).length;
+    const risk = sameCnt * v * 1.5;
+    const fillPenalty = (3 - board.foe[i].length === 1 && gain < 6) ? 3 : 0;
+    const s = gain + destroyGain * 1.2 - risk * 0.4 - fillPenalty + Math.random() * 2;
+    if(s > best.score) best = { lane: i, score: s };
+  }
+  return best;
+}
+async function aiTurnClassic(){
+  setStatus(`${foeName} 이(가) 주사위를 굴립니다...`);
+  const v = rand6();
+  await rollAnimation("foe", v, false);
+  setStatus(`${foeName} 이(가) [${v}] 을(를) 굴렸습니다.`);
+  await wait(650);
+  const { lane } = aiEvalClassic(v);
+  clearTray("foe");
+  addDieToBoard("foe", lane, { v, s: false });
+  classicAutoDestroy("foe", lane, v);
+  await wait(500);
+  nextTurn();
+}
+
+/* 로아룰 AI */
+function aiKnockDmg(lane, v){
+  const removed = board.me[lane].filter(d => !d.s && d.v === v);
+  if(!removed.length) return 0;
+  return laneScore(board.me[lane]) - laneScore(board.me[lane].filter(d => d.s || d.v !== v));
+}
+/* 눈 v에 대한 AI 선택지 평가: 배치 가능한 줄과 알까기가 강제되는 줄을 분리 */
+function aiOptionsShield(v, isShieldDie){
+  const place = { lane: -1, score: -Infinity };
+  const knock = { lane: -1, score: -Infinity };
+  for(let i = 0; i < 3; i++){
+    if(!laneHasSpace("foe", i)) continue;
+    const match = !isShieldDie && board.me[i].some(d => !d.s && d.v === v);
+    if(match){
+      // 이 줄에 놓으면 무조건 맞교환: 상대 피해 + 실드 기대값(≈4.5) - 내 주사위 손실
+      const dmg = aiKnockDmg(i, v);
+      const s = dmg + 4.5 - v * 0.5 + Math.random() * 1.5;
+      if(s > knock.score){ knock.lane = i; knock.score = s; }
+    } else {
+      const gain = laneScore([...board.foe[i], {v, s: isShieldDie}]) - laneScore(board.foe[i]);
+      const behind = laneScore(board.me[i]) > laneScore(board.foe[i]) ? 1.5 : 0;
+      const s = gain + behind + Math.random() * 1.5;
+      if(s > place.score){ place.lane = i; place.score = s; }
+    }
+  }
+  return { place, knock };
+}
+function aiEvalShield(v){
+  const { place, knock } = aiOptionsShield(v, false);
+  return Math.max(place.score, knock.score);
+}
+async function aiTurnShield(){
+  const isFirst = turnCount === 0;
+  setStatus(`${foeName} 이(가) 주사위를 굴립니다...`);
+  let v = rand6();
+  await rollAnimation("foe", v, isFirst);
+  setStatus(`${foeName} 이(가) [${v}] 을(를) 굴렸습니다.`);
+  await wait(500);
+
+  // 리롤 판단
+  if(!isFirst && rerolls.foe > 0 && v <= 2 && aiEvalShield(v) < 7){
+    rerolls.foe--;
+    updateRerollChips();
+    setStatus(`${foeName} 이(가) 리롤권을 사용합니다!`);
+    await wait(500);
+    const v2 = rand6();
+    await rollAnimation("foe", v2, false);
+    if(aiEvalShield(v2) >= aiEvalShield(v)) v = v2;
+    setStatus(`${foeName} 이(가) [${v}] 을(를) 선택했습니다.`);
+    await wait(500);
+  }
+
+  const { place, knock } = aiOptionsShield(v, isFirst);
+  const doKnock = knock.lane >= 0 && (place.lane < 0 || knock.score >= place.score);
+
+  if(doKnock){
+    // 맞교환 알까기: AI 주사위는 소모, 내(플레이어) 같은 눈 일반 주사위 제거
+    clearTray("foe");
+    setStatus(`${foeName} 의 알까기! [${v}] 주사위끼리 맞부딪혔습니다!`);
+    applyKnock("me", knock.lane, v);
+    floatText(lanesFoeEl.children[knock.lane], "🎲 소모!", "#ffb0a6");
+    await wait(750);
+
+    // 보상 실드
+    setStatus(`🛡 ${foeName} 이(가) 실드 주사위를 굴립니다...`);
+    const sv = rand6();
+    await rollAnimation("foe", sv, true);
+    await wait(400);
+
+    // 배치 판단: 낮은 눈이면 내(플레이어) 보드 방해, 아니면 자기 보드 강화
+    let target = null, lane = -1;
+    const own = (() => {
+      let b = { lane: -1, gain: -Infinity };
+      for(let i = 0; i < 3; i++){
+        if(!laneHasSpace("foe", i)) continue;
+        const g = laneScore([...board.foe[i], {v: sv, s: true}]) - laneScore(board.foe[i]);
+        if(g > b.gain) b = { lane: i, gain: g };
+      }
+      return b;
+    })();
+    if(sv <= 2){
+      let d = { lane: -1, score: -Infinity };
+      for(let i = 0; i < 3; i++){
+        if(!laneHasSpace("me", i)) continue;
+        const s = laneScore(board.me[i]) * 0.2 + (3 - board.me[i].length) * 2;
+        if(s > d.score) d = { lane: i, score: s };
+      }
+      if(d.lane >= 0){ target = "me"; lane = d.lane; }
+    }
+    if(target === null && own.lane >= 0){ target = "foe"; lane = own.lane; }
+    if(target === null){
+      for(let i = 0; i < 3; i++) if(laneHasSpace("me", i)){ target = "me"; lane = i; break; }
+    }
+    clearTray("foe");
+    if(target !== null){
+      addDieToBoard(target, lane, { v: sv, s: true });
+      if(target === "me") setStatus(`🛡 ${foeName} 이(가) 내 보드에 실드 [${sv}] 을(를) 놓았습니다!`);
+    } else {
+      setStatus(`${foeName} 이(가) 실드를 놓을 곳이 없습니다.`);
+    }
+    await wait(500);
+  } else if(place.lane >= 0){
+    clearTray("foe");
+    addDieToBoard("foe", place.lane, { v, s: isFirst });
+    await wait(450);
+  } else {
+    clearTray("foe");
+  }
+  await wait(300);
+  nextTurn();
+}
+
+/* ═══════════ 게임 종료 ═══════════ */
+function endGame(){
+  phase = "over";
+  setTurnBanner(null);
+  $("mainBtn").disabled = true;
+  highlightTargets(false);
+  const my = totalScore("me"), th = totalScore("foe");
+  let outcome; // 1 승 / -1 패 / 0 무
+  let subText;
+  if(rule === "shield"){
+    let mw = 0, fw = 0;
+    for(let i = 0; i < 3; i++){
+      const ms = laneScore(board.me[i]), fs = laneScore(board.foe[i]);
+      if(ms > fs) mw++;
+      else if(fs > ms) fw++;
+    }
+    if(mw !== fw) outcome = mw > fw ? 1 : -1;
+    else outcome = my > th ? 1 : my < th ? -1 : 0;
+    subText = `줄 승수 ${mw} : ${fw}  ·  총점 ${my} : ${th}`;
+    if(mw === fw && my !== th) subText += "  (총점 승부)";
+  } else {
+    outcome = my > th ? 1 : my < th ? -1 : 0;
+    subText = `${myName} ${my}점  vs  ${foeName} ${th}점`;
+  }
+
+  const big = $("resultBig"), sub = $("resultSub"), rtp = $("resultTp");
+  sub.textContent = subText;
+  if(outcome === 1){
+    record.w++;
+    big.textContent = "승리!";
+    big.className = "result-big win";
+    rtp.innerHTML = `🪙 <span style="color:#9fdd5c">+${BET.toLocaleString()} TP</span> 획득!`;
+    updateTp(BET);
+  } else if(outcome === -1){
+    record.l++;
+    big.textContent = "패배.";
+    big.className = "result-big lose";
+    rtp.innerHTML = `🪙 <span style="color:#ff8d80">-${BET.toLocaleString()} TP</span> 잃음`;
+    updateTp(-BET);
+  } else {
+    record.d++;
+    big.textContent = "무승부";
+    big.className = "result-big draw";
+    rtp.textContent = "베팅한 TP는 그대로 돌려받았습니다.";
+  }
+  rtp.innerHTML += `<div style="font-size:13px;color:#cbb489;margin-top:6px;">전적 ${record.w}승 ${record.l}패 ${record.d}무</div>`;
+  setStatus("게임 종료!");
+  setTimeout(() => $("resultModal").classList.add("show"), 800);
+}
+
+/* ═══════════ 재대결/퇴장 ═══════════ */
+function requestRematch(){
+  rematchFlags.me = true;
+  $("rematchBtn").disabled = true;
+  if(mode === "single"){
+    firstRole = otherRole(firstRole);
+    resetBoardsAndStart();
+    return;
+  }
+  $("rematchStatus").textContent = rematchFlags.foe ? "" : "상대방의 수락을 기다리는 중...";
+  send({ type: "rematch" });
+  checkRematch();
+}
+function checkRematch(){
+  if(rematchFlags.me && rematchFlags.foe){
+    firstRole = otherRole(firstRole);
+    resetBoardsAndStart();
+  }
+}
+function onOpponentLeft(){
+  if(phase === "lobby") return;
+  phase = "over";
+  $("resultModal").classList.remove("show");
+  $("leftModal").classList.add("show");
+}
+async function leaveToLobby(){
+  send({ type: "bye" });
+  await teardownChannel();
+  location.reload();
+}
+window.addEventListener("beforeunload", () => {
+  try{ send({ type: "bye" }); }catch(e){}
+});
+
+/* ═══════════ 모달/입력 ═══════════ */
+function openRules(){ $("rulesModal").classList.add("show"); }
+function closeRules(){ $("rulesModal").classList.remove("show"); }
+$("rulesModal").addEventListener("click", e => { if(e.target.id === "rulesModal") closeRules(); });
+$("codeInput").addEventListener("keydown", e => { if(e.key === "Enter") joinRoom(); });
+$("codeInput").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase(); });
+
+/* ═══════════ 시작 ═══════════ */
+selectRule("classic");
+renderAll();
+
+</script>
+</body>
+</html>
