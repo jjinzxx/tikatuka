@@ -1,5 +1,7 @@
 # TikaTuka (티카투카)
 
+[티카투카 온라인](http://xn--ob7ba96zmwa.xn--oi2b61z32a.xn--3e0b707e/)
+<br><br>
 Cult of the Lamb의 미니게임 Knucklebones를 모티브로 제작한 웹 기반 주사위 대전 게임입니다. 순수 HTML/CSS/JavaScript 단일 파일로 동작하며, 싱글 플레이(vs AI)와 입장코드 기반 2인 온라인 대전을 모두 지원합니다.
 
 ## 개요
