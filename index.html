@@ -106,13 +106,6 @@
   }
   .banner .pname{font-family:'Jua',sans-serif;font-size:20px;color:#fff;text-shadow:0 2px 2px rgba(0,0,0,.5);}
   .banner .total{font-family:'Jua',sans-serif;font-size:15px;color:rgba(255,255,255,.9);}
-  .rr-chip{
-    display:none;font-family:'Jua',sans-serif;font-size:12px;color:#fff;
-    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.35);
-    border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;
-  }
-  .rr-chip.on{display:inline-block;}
-  .rr-chip.used{opacity:.45;text-decoration:line-through;}
   .turn-chip{
     position:absolute;top:-12px;font-family:'Jua',sans-serif;font-size:12px;letter-spacing:1px;
     background:#fdf6e3;color:#3f6b1f;border:2px solid #3f6b1f;border-radius:999px;padding:2px 12px;
@@ -577,7 +570,7 @@
       <div class="banner me" id="bannerMe">
         <div class="avatar">😎</div>
         <div>
-          <div class="pname"><span id="nameMe">나</span><span class="tier-chip" id="tierBadgeMe"></span><span class="rr-chip" id="rrMe">타짜×1</span></div>
+          <div class="pname"><span id="nameMe">나</span><span class="tier-chip" id="tierBadgeMe"></span></div>
           <div class="total">총점 <span id="totalMe">0</span></div>
         </div>
         <div class="turn-chip">✊ TURN</div>
@@ -585,7 +578,7 @@
       <div class="banner foe" id="bannerFoe">
         <div class="avatar" id="avatarFoe">😎</div>
         <div>
-          <div class="pname"><span class="rr-chip" id="rrFoe">타짜×1</span><span id="nameFoe">상대</span><span class="tier-chip" id="tierBadgeFoe" style="display:none;"></span></div>
+          <div class="pname"><span id="nameFoe">상대</span><span class="tier-chip" id="tierBadgeFoe" style="display:none;"></span></div>
           <div class="total">총점 <span id="totalFoe">0</span></div>
         </div>
         <div class="turn-chip">✊ TURN</div>
@@ -985,15 +978,6 @@ function updateTp(delta){
     setTimeout(() => { d.textContent = ""; }, 2500);
   }
 }
-function updateRerollChips(){
-  const on = rule === "shield";
-  [["rrMe", rerolls.me], ["rrFoe", rerolls.foe]].forEach(([id, n]) => {
-    const el = $(id);
-    el.classList.toggle("on", on);
-    el.classList.toggle("used", n <= 0);
-    el.textContent = `타짜×${Math.max(0, n)}`;
-  });
-}
 function floatText(anchorEl, text, color){
   const r = anchorEl.getBoundingClientRect();
   const f = document.createElement("div");
@@ -1364,7 +1348,6 @@ function applyTakeover(newRole, snap, senderKey){
   renderMyRank();
   $("rulesClassic").style.display = rule === "classic" ? "block" : "none";
   $("rulesShield").style.display  = rule === "shield"  ? "block" : "none";
-  updateRerollChips();
   clearTray("me"); clearTray("foe");
   renderAll();
   setStatus(`대결에 합류했습니다! ${foeName} 님과 계속 진행합니다.`);
@@ -1502,7 +1485,6 @@ async function handleMsg(msg){
     case "roll": {
       if(msg.reroll){
         rerolls.foe = Math.max(0, rerolls.foe - 1);
-        updateRerollChips();
         setStatus(`${foeName} 님이 타짜의 손놀림을 사용했습니다!`);
         await wait(400);
       } else {
@@ -1654,7 +1636,6 @@ function resetBoardsAndStart(){
   rematchFlags = { me: false, foe: false };
   clearTray("me"); clearTray("foe");
   renderAll();
-  updateRerollChips();
   highlightTargets(false);
   $("resultModal").classList.remove("show");
   $("rematchStatus").textContent = "";
@@ -1765,7 +1746,6 @@ async function onMainBtn(){
 async function onReroll(){
   if(phase !== "placingMe" || !pending || rerolls.me <= 0) return;
   rerolls.me--;
-  updateRerollChips();
   $("rerollBtn").classList.remove("show");
   highlightTargets(false);
   phase = "rollingMe";
@@ -1939,7 +1919,6 @@ async function aiTurnShield(){
   // 타짜의 손놀림 판단
   if(!isFirst && rerolls.foe > 0 && v <= 2 && aiEvalShield(v) < 7){
     rerolls.foe--;
-    updateRerollChips();
     setStatus(`${foeName} 이(가) 타짜의 손놀림을 사용합니다!`);
     await wait(500);
     const v2 = rand6();
