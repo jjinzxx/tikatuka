@@ -431,7 +431,7 @@
 
   /* ══════ 관전 화면 ══════ */
   #spectatorScreen{
-    display:none;width:min(560px,94vw);
+    display:none;width:min(720px,96vw);
     background:radial-gradient(ellipse at 50% 30%, #6b4a2e 0%, #4d3520 65%, #3a2716 100%);
     border-radius:32px;border:8px solid #241708;outline:3px solid #55391f;
     box-shadow:inset 0 0 50px rgba(0,0,0,.5), 0 16px 36px rgba(0,0,0,.6);
@@ -453,6 +453,53 @@
   .spec-vs-label{font-family:'Jua',sans-serif;font-size:15px;color:#a98c5f;}
   .spec-note{font-size:13px;color:#cbb489;line-height:1.6;margin-top:6px;}
 
+  /* 관전용 미러 보드 */
+  .spec-board{display:grid;grid-template-columns:1fr 76px 1fr;gap:10px;margin:16px 0 4px;align-items:start;}
+  .spec-lanes{display:flex;flex-direction:column;gap:10px;}
+  .spec-board .lane{height:58px;gap:5px;padding:0 6px;background:rgba(0,0,0,.28);}
+  .spec-lanes.g-side .lane{justify-content:flex-end;border-color:rgba(0,0,0,.45);}
+  .spec-board .die{width:38px;height:38px;padding:5px;border-radius:8px;}
+  .spec-board .die .pip{width:7px;height:7px;}
+  .spec-board .die.shield::after{font-size:9px;}
+  .spec-mid{display:flex;flex-direction:column;gap:10px;}
+  .spec-mid .vs-cell{height:58px;}
+  .spec-mid .score-bubble{width:30px;height:30px;font-size:13px;}
+  .spec-mid .vs-arrow{width:14px;font-size:13px;}
+  .spec-status{
+    font-family:'Jua',sans-serif;font-size:14px;color:#efe4c8;
+    text-shadow:0 1px 2px rgba(0,0,0,.6);min-height:22px;margin-top:10px;
+  }
+
+  /* ══════ 채팅 ══════ */
+  #chatPanel{
+    display:none;flex-direction:column;width:min(560px,94vw);
+    background:linear-gradient(180deg,#3c2a18,#2e2012);
+    border:4px solid #241708;outline:2px solid #55391f;border-radius:18px;
+    padding:12px 14px;margin:0 0 30px;
+  }
+  .chat-title{font-family:'Jua',sans-serif;font-size:13px;color:#cbb489;letter-spacing:1px;margin-bottom:8px;text-align:left;}
+  .chat-log{
+    height:170px;overflow-y:auto;user-select:text;
+    background:rgba(15,9,4,.55);border:1px solid #5c4327;border-radius:10px;
+    padding:8px 10px;font-size:13.5px;line-height:1.55;text-align:left;
+  }
+  .chat-msg{margin-bottom:3px;color:#efe4c8;word-break:break-all;}
+  .chat-msg .chat-name{font-family:'Jua',sans-serif;color:#ffd97a;margin-right:6px;}
+  .chat-msg.mine .chat-name{color:#9fdd5c;}
+  .chat-msg .chat-spec-tag{font-size:11px;margin-right:4px;}
+  .chat-input-row{display:flex;gap:8px;margin-top:8px;}
+  .chat-input-row input{
+    flex:1;min-width:0;padding:9px 12px;font-size:14px;font-family:'Gowun Dodum',sans-serif;
+    background:rgba(15,9,4,.65);color:#fff;border:2px solid #6b4a30;border-radius:10px;outline:none;
+  }
+  .chat-input-row input:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(232,182,76,.35);}
+  .chat-input-row button{
+    font-family:'Jua',sans-serif;font-size:14px;color:#fff;padding:0 18px;
+    background:linear-gradient(180deg,#95c653,#54832a);border:2px solid #d8cfae;border-radius:10px;
+    cursor:pointer;box-shadow:0 3px 0 #2f4b15;
+  }
+  .chat-input-row button:active{transform:translateY(2px);box-shadow:0 1px 0 #2f4b15;}
+
   @media (max-width:820px){
     .board{grid-template-columns:90px 1fr 70px 1fr 90px;gap:8px;}
     .die{width:44px;height:44px;padding:6px;border-radius:9px;}
@@ -466,6 +513,13 @@
     .banner .avatar{width:40px;height:40px;font-size:22px;}
     .banner .pname{font-size:15px;}
     .code-display{font-size:36px;letter-spacing:8px;}
+    #spectatorScreen{padding:20px 14px;}
+    .spec-board{grid-template-columns:1fr 56px 1fr;gap:6px;}
+    .spec-board .lane{height:46px;gap:3px;padding:0 4px;}
+    .spec-board .die{width:30px;height:30px;padding:4px;}
+    .spec-board .die .pip{width:5px;height:5px;}
+    .spec-mid .vs-cell{height:46px;}
+    .spec-mid .score-bubble{width:26px;height:26px;font-size:12px;}
   }
 </style>
 </head>
@@ -548,7 +602,25 @@
       <div class="spec-score" id="specGuestScore">0</div>
     </div>
   </div>
-  <div class="spec-note" id="specNote">두 플레이어의 대결을 실시간 점수로 지켜보고 있습니다. 둘 중 한 명이 나가면 자동으로 이어서 참가하게 됩니다.</div>
+  <div class="spec-board">
+    <div class="spec-lanes" id="specLanesHost">
+      <div class="lane"></div>
+      <div class="lane"></div>
+      <div class="lane"></div>
+    </div>
+    <div class="spec-mid">
+      <div class="vs-cell"><div class="score-bubble g" id="specH0">0</div><div class="vs-arrow" id="specArr0">—</div><div class="score-bubble r" id="specG0">0</div></div>
+      <div class="vs-cell"><div class="score-bubble g" id="specH1">0</div><div class="vs-arrow" id="specArr1">—</div><div class="score-bubble r" id="specG1">0</div></div>
+      <div class="vs-cell"><div class="score-bubble g" id="specH2">0</div><div class="vs-arrow" id="specArr2">—</div><div class="score-bubble r" id="specG2">0</div></div>
+    </div>
+    <div class="spec-lanes g-side" id="specLanesGuest">
+      <div class="lane"></div>
+      <div class="lane"></div>
+      <div class="lane"></div>
+    </div>
+  </div>
+  <div class="spec-status" id="specStatus">경기 정보를 받아오는 중...</div>
+  <div class="spec-note" id="specNote">두 플레이어의 대결을 실시간 보드로 지켜보고 있습니다. 둘 중 한 명이 나가면 자동으로 이어서 참가하게 됩니다.</div>
   <button class="lobby-btn join" style="margin-top:22px;" onclick="leaveToLobby()">관전 그만두기</button>
 </div>
 
@@ -629,6 +701,16 @@
         <button class="sub-btn hold-btn" id="holdBtn" onclick="onHold()">홀드</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══════ 채팅 (멀티/관전 공용) ══════ -->
+<div id="chatPanel">
+  <div class="chat-title">💬 방 채팅</div>
+  <div class="chat-log" id="chatLog"></div>
+  <div class="chat-input-row">
+    <input id="chatInput" maxlength="120" placeholder="메시지 입력 후 Enter (최대 120자)">
+    <button onclick="sendChat()">전송</button>
   </div>
 </div>
 
@@ -1224,6 +1306,7 @@ function connectChannel(code){
       config: { broadcast: { self: false }, presence: { key: clientId } }
     });
     channel.on("broadcast", { event: "game" }, ({ payload }) => enqueueMsg(payload));
+    channel.on("broadcast", { event: "chat" }, ({ payload }) => onChatMsg(payload));
     channel.on("presence", { event: "join" }, ({ key, newPresences }) => {
       if(key === clientId) return;
       onPresenceJoin(key, newPresences[0]);
@@ -1259,6 +1342,45 @@ async function teardownChannel(){
 function send(payload){
   if(mode !== "multi" || !channel) return;
   channel.send({ type: "broadcast", event: "game", payload: { ...payload, by: myRole } });
+}
+
+/* ═══════════ 채팅 (플레이어/관전자 공용, "chat" 이벤트로 게임 큐와 분리) ═══════════ */
+function showChatPanel(){
+  $("chatPanel").style.display = "flex";
+}
+function onChatMsg(p){
+  if(!p || typeof p.text !== "string") return;
+  appendChat(String(p.name || "???").slice(0, 10), p.text.slice(0, 120), !!p.spec, false);
+}
+function appendChat(name, text, isSpec, mine){
+  const log = $("chatLog");
+  const div = document.createElement("div");
+  div.className = "chat-msg" + (mine ? " mine" : "");
+  if(isSpec){
+    const tag = document.createElement("span");
+    tag.className = "chat-spec-tag";
+    tag.textContent = "👁";
+    tag.title = "관전자";
+    div.appendChild(tag);
+  }
+  const nm = document.createElement("span");
+  nm.className = "chat-name";
+  nm.textContent = name;
+  div.appendChild(nm);
+  div.appendChild(document.createTextNode(text));
+  log.appendChild(div);
+  while(log.children.length > 100) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+function sendChat(){
+  if(mode !== "multi" || !channel) return;
+  const inp = $("chatInput");
+  const text = inp.value.trim().slice(0, 120);
+  if(!text) return;
+  inp.value = "";
+  const isSpec = myStatus === "spectator";
+  channel.send({ type: "broadcast", event: "chat", payload: { name: myName, text, spec: isSpec } });
+  appendChat(myName, text, isSpec, true); // self:false 설정이라 내 메시지는 직접 그림
 }
 
 /* 새로운 참가자가 들어왔을 때 */
@@ -1300,7 +1422,7 @@ function attemptPromoteSpectator(){
   const chosen = spectators[0];
   const vacatedRole = otherRole(myRole);
   const snap = buildStateSnapshot();
-  send({ type: "takeover", targetKey: chosen.key, newRole: vacatedRole, snapshot: snap, senderKey: clientId });
+  send({ type: "takeover", targetKey: chosen.key, newRole: vacatedRole, newName: chosen.name, snapshot: snap, senderKey: clientId });
   opponentClientId = chosen.key;
   foeName = chosen.name;
   foeTier = chosen.tier || null;
@@ -1369,7 +1491,14 @@ function enterSpectatorMode(hostName, guestName){
   $("specRoomBadge").textContent = "관전 모드 · 🔑" + roomCode;
   $("specHostName").textContent = hostName;
   $("specGuestName").textContent = guestName;
+  $("specStatus").textContent = "경기 정보를 받아오는 중...";
   specState = null; // 호스트의 sync 메시지를 기다림
+  showChatPanel();
+}
+function setSpecStatus(t){ $("specStatus").textContent = t; }
+function specNameOf(role){
+  if(!specState) return "";
+  return role === "host" ? specState.hostName : specState.guestName;
 }
 function initSpecStateFromSnapshot(snap){
   specState = {
@@ -1382,6 +1511,7 @@ function initSpecStateFromSnapshot(snap){
     holdHost: !!snap.holdHost,
     holdGuest: !!snap.holdGuest
   };
+  setSpecStatus("실시간 관전 중입니다.");
   renderSpectatorScoreboard();
 }
 function renderSpectatorScoreboard(){
@@ -1394,6 +1524,40 @@ function renderSpectatorScoreboard(){
   $("specGuestScore").textContent = guestTotal;
   $("specHostSide").classList.toggle("turn", specState.turnRole === "host");
   $("specGuestSide").classList.toggle("turn", specState.turnRole === "guest");
+  renderSpectatorBoard();
+}
+/* 관전자 미러 보드: specState의 host/guest 보드를 실제 주사위 모양으로 렌더 */
+function renderSpectatorBoard(){
+  if(!specState) return;
+  const hostLanes = $("specLanesHost").children;
+  const guestLanes = $("specLanesGuest").children;
+  for(let i = 0; i < 3; i++){
+    renderSpecLane(hostLanes[i], specState.boardHost[i], "me");
+    renderSpecLane(guestLanes[i], specState.boardGuest[i], "foe");
+    const hs = laneScoreFor(specState.boardHost[i], specState.rule);
+    const gs = laneScoreFor(specState.boardGuest[i], specState.rule);
+    $("specH"+i).textContent = hs;
+    $("specG"+i).textContent = gs;
+    const arr = $("specArr"+i);
+    arr.className = "vs-arrow";
+    if(hs > gs){ arr.textContent = "◀"; arr.classList.add("left"); }
+    else if(gs > hs){ arr.textContent = "▶"; arr.classList.add("right"); }
+    else arr.textContent = "—";
+    $("specH"+i).classList.toggle("lane-won", specState.rule === "shield" && hs > gs);
+    $("specG"+i).classList.toggle("lane-won", specState.rule === "shield" && gs > hs);
+  }
+}
+function renderSpecLane(wrap, arr, owner){
+  wrap.innerHTML = "";
+  const cnt = {};
+  arr.forEach(d => cnt[d.v] = (cnt[d.v] || 0) + 1);
+  arr.forEach(d => {
+    const el = makeDie(d.v, owner, d.s);
+    if(cnt[d.v] === 2) el.classList.add("stack2");
+    if(cnt[d.v] >= 3) el.classList.add("stack3");
+    wrap.appendChild(el);
+  });
+  wrap.classList.toggle("full-lane", arr.length >= 3);
 }
 /* 관전자는 실제 게임판이 없으므로 place/knock/hold/endTurn만 가벼운 미러 상태로 반영 */
 function handleSpectatorMsg(msg){
@@ -1402,6 +1566,14 @@ function handleSpectatorMsg(msg){
     return;
   }
   switch(msg.type){
+    case "roll": {
+      if(msg.by !== "host" && msg.by !== "guest") break;
+      const n = specNameOf(msg.by);
+      setSpecStatus(msg.reroll
+        ? `${n} 님이 타짜의 손놀림으로 [${msg.value}] 을(를) 굴렸습니다!`
+        : `${n} 님이 ${msg.shield ? "🛡 실드 " : ""}주사위 [${msg.value}] 을(를) 굴렸습니다.`);
+      break;
+    }
     case "place": {
       const senderRole = msg.by;
       if(senderRole !== "host" && senderRole !== "guest") break;
@@ -1414,6 +1586,9 @@ function handleSpectatorMsg(msg){
           specState[otherKey][msg.lane] = specState[otherKey][msg.lane].filter(d => d.v !== msg.value);
         }
       }
+      setSpecStatus(msg.board === "self"
+        ? `${specNameOf(senderRole)} 님이 [${msg.value}] 을(를) 놓았습니다.`
+        : `🛡 ${specNameOf(senderRole)} 님이 상대 보드에 실드 [${msg.value}] 을(를) 놓았습니다!`);
       break;
     }
     case "knock": {
@@ -1422,6 +1597,7 @@ function handleSpectatorMsg(msg){
       const targetSide = otherRole(senderRole);
       const key = targetSide === "host" ? "boardHost" : "boardGuest";
       specState[key][msg.lane] = specState[key][msg.lane].filter(d => d.s || d.v !== msg.value);
+      setSpecStatus(`💥 ${specNameOf(senderRole)} 님의 알까기! [${msg.value}] 주사위끼리 제거됩니다!`);
       break;
     }
     case "hold": {
@@ -1429,6 +1605,7 @@ function handleSpectatorMsg(msg){
       if(senderRole === "host") specState.holdHost = true;
       else if(senderRole === "guest") specState.holdGuest = true;
       specState.turnRole = otherRole(specState.turnRole);
+      setSpecStatus(`${specNameOf(senderRole)} 님이 홀드했습니다.`);
       break;
     }
     case "endTurn": {
@@ -1467,16 +1644,21 @@ async function handleMsg(msg){
     else { pendingFirstRollResult = msg; }
     return;
   }
-  // 관전자 최초 동기화 (호스트가 발송, 대상 지정)
+  // 관전자 동기화 (호스트가 발송 — 특정 대상 또는 "*"=관전자 전원)
   if(msg.type === "sync"){
-    if(msg.targetKey !== clientId) return;
+    if(msg.targetKey !== clientId && msg.targetKey !== "*") return;
     if(myStatus === "spectator") initSpecStateFromSnapshot(msg.snapshot);
     return;
   }
-  // 좌석 교체(대타 투입) — 대상으로 지정된 관전자만 처리
+  // 좌석 교체(대타 투입) — 대상으로 지정된 관전자만 처리, 나머지 관전자는 이름만 갱신
   if(msg.type === "takeover"){
-    if(msg.targetKey !== clientId) return;
-    applyTakeover(msg.newRole, msg.snapshot, msg.senderKey);
+    if(msg.targetKey === clientId){
+      applyTakeover(msg.newRole, msg.snapshot, msg.senderKey);
+    } else if(myStatus === "spectator" && specState && msg.newName){
+      specState[msg.newRole === "host" ? "hostName" : "guestName"] = msg.newName;
+      setSpecStatus(`${msg.newName} 님이 대타로 투입되었습니다.`);
+      renderSpectatorScoreboard();
+    }
     return;
   }
   // 관전자는 실제 게임 상태(board.me/foe)를 갖지 않으므로 별도 미러 상태로 처리
@@ -1552,6 +1734,7 @@ function startMatch(){
   $("rulesClassic").style.display = rule === "classic" ? "block" : "none";
   $("rulesShield").style.display  = rule === "shield"  ? "block" : "none";
   $("rulesTitle").textContent = "📜 게임 규칙 — " + RULE_NAME[rule];
+  if(mode === "multi") showChatPanel();
 
   decideFirstPlayerAndStart();
 }
@@ -1648,6 +1831,10 @@ function resetBoardsAndStart(){
   $("mainBtn").style.display = "";
 
   turnRole = firstRole;
+  // 관전자들의 미러 보드도 새 판 기준으로 초기화 (재대결 포함)
+  if(mode === "multi" && myRole === "host"){
+    send({ type: "sync", targetKey: "*", snapshot: buildStateSnapshot() });
+  }
   beginTurn();
 }
 
@@ -2076,6 +2263,7 @@ function closeRules(){ $("rulesModal").classList.remove("show"); }
 $("rulesModal").addEventListener("click", e => { if(e.target.id === "rulesModal") closeRules(); });
 $("tierInfoModal").addEventListener("click", e => { if(e.target.id === "tierInfoModal") closeTierInfo(); });
 $("codeInput").addEventListener("keydown", e => { if(e.key === "Enter") joinRoom(); });
+$("chatInput").addEventListener("keydown", e => { if(e.key === "Enter") sendChat(); });
 $("codeInput").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase(); });
 
 /* ═══════════ 시작 ═══════════ */
