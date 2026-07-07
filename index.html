@@ -762,6 +762,7 @@ let specState = null; // { boardHost, boardGuest, turnRole, rule, hostName, gues
 
 /* ═══════════ 랭크(티어) 시스템 — 브라우저 로컬 저장, 서버 없음 ═══════════ */
 const RANK_KEY = "tikatuka_rank_v1";
+const NICK_KEY = "tikatuka_nick_v1";
 const TIER_NAMES = ["브론즈", "실버", "골드", "플래티넘", "다이아"];
 const DIVISIONS = ["V", "IV", "III", "II", "I"];
 let foeTier = null; // 현재 상대의 티어 (싱글/AI는 null → 별 보호 대상 아님)
@@ -1105,7 +1106,9 @@ function selectRule(r){
 }
 function sanitizeName(){
   const n = $("nickInput").value.trim();
-  return n.length ? n : "플레이어";
+  const name = n.length ? n : "플레이어";
+  try{ localStorage.setItem(NICK_KEY, name); }catch(e){}
+  return name;
 }
 function genCode(){
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -2079,6 +2082,10 @@ $("codeInput").addEventListener("input", e => { e.target.value = e.target.value.
 selectRule("classic");
 renderAll();
 renderMyRank();
+try{
+  const savedNick = localStorage.getItem(NICK_KEY);
+  if(savedNick) $("nickInput").value = savedNick;
+}catch(e){}
 
 </script>
 </body>
